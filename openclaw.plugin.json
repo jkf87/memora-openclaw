@@ -2,7 +2,7 @@
   "id": "memora-openclaw",
   "name": "Memora for OpenClaw",
   "description": "Retrieves OpenClaw Markdown memory through Memora cue indices using GLM and BGE-M3.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "activation": {
     "onStartup": true
   },

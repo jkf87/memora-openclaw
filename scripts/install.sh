@@ -6,8 +6,35 @@ VENV_DIR="${PLUGIN_DIR}/.venv"
 MEMORA_DIR="${PLUGIN_DIR}/vendor/Memora"
 MEMORA_COMMIT="dec3f8f2444eace7004fc084abe1be9f3d88270e"
 
-command -v python3 >/dev/null || {
-  echo "python3 is required" >&2
+select_python() {
+  local candidate
+  local resolved
+  for candidate in \
+    "${MEMORA_PYTHON_BIN:-}" \
+    "${VENV_DIR}/bin/python" \
+    python3.12 \
+    python3.11 \
+    python3.10 \
+    python3; do
+    [[ -n "$candidate" ]] || continue
+    if [[ "$candidate" == */* ]]; then
+      [[ -x "$candidate" ]] || continue
+      resolved="$candidate"
+    else
+      resolved="$(command -v "$candidate" 2>/dev/null || true)"
+      [[ -n "$resolved" ]] || continue
+    fi
+    if "$resolved" -c \
+      'import sys; raise SystemExit(0 if (3, 10) <= sys.version_info[:2] < (3, 13) else 1)'; then
+      printf '%s\n' "$resolved"
+      return 0
+    fi
+  done
+  return 1
+}
+
+PYTHON_BOOTSTRAP="$(select_python)" || {
+  echo "Python 3.10, 3.11, or 3.12 is required" >&2
   exit 1
 }
 command -v git >/dev/null || {
@@ -19,7 +46,9 @@ command -v openclaw >/dev/null || {
   exit 1
 }
 
-python3 -m venv "${VENV_DIR}"
+if [[ ! -x "${VENV_DIR}/bin/python" ]]; then
+  "$PYTHON_BOOTSTRAP" -m venv "${VENV_DIR}"
+fi
 "${VENV_DIR}/bin/python" -m pip install --upgrade pip
 
 if [[ ! -d "${MEMORA_DIR}/.git" ]]; then
@@ -31,10 +60,14 @@ git -C "${MEMORA_DIR}" fetch origin "${MEMORA_COMMIT}"
 git -C "${MEMORA_DIR}" checkout --detach "${MEMORA_COMMIT}"
 
 "${VENV_DIR}/bin/pip" install \
-  -r "${MEMORA_DIR}/requirements.txt" \
   -r "${PLUGIN_DIR}/requirements-plugin.txt"
 
-openclaw plugins install -l "${PLUGIN_DIR}"
+if openclaw plugins inspect memora-openclaw >/dev/null 2>&1; then
+  echo "memora-openclaw is already registered; keeping the existing plugin link."
+  openclaw plugins enable memora-openclaw >/dev/null
+else
+  openclaw plugins install -l "${PLUGIN_DIR}"
+fi
 
 echo
 echo "Installed memora-openclaw."

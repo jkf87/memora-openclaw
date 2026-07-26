@@ -1,15 +1,44 @@
 # Memora for OpenClaw
 
-`memora-openclaw` adds Memora retrieval to OpenClaw without replacing
-OpenClaw's Markdown memory. It compiles `MEMORY.md` and `memory/**/*.md` into
-Memora primary abstractions and cue indices, then exposes them through the
-optional `memora_recall` tool.
+**Structured long-term memory for OpenClaw agents.**
+
+[![Release](https://img.shields.io/github/v/release/jkf87/memora-openclaw)](https://github.com/jkf87/memora-openclaw/releases)
+[![CI](https://github.com/jkf87/memora-openclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/jkf87/memora-openclaw/actions/workflows/ci.yml)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-2026.7.1%2B-blue)](https://github.com/openclaw/openclaw)
+[![Ollama](https://img.shields.io/badge/Ollama-BGE--M3-black)](https://ollama.com/library/bge-m3)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+`memora-openclaw` turns your existing `MEMORY.md` and `memory/**/*.md` files
+into Memora primary abstractions and cue anchors, then retrieves them through
+Ollama BGE-M3. Markdown remains the source of truth: there is no memory
+migration, no separate memory-cloud subscription, and no API key copied into
+the plugin.
 
 - LLM: a GLM model already authenticated in the OpenClaw Gateway
 - Embeddings: an existing Ollama `bge-m3` model through `/api/embed`
 - Vector store: local ChromaDB
 - Credentials: no API key is copied into this plugin
 - Source of truth: existing OpenClaw Markdown memory
+
+## Why Memora for OpenClaw?
+
+OpenClaw's built-in hybrid search is strong at exact strings, dates, and source
+chunks. Memora adds a complementary representation layer for paraphrased,
+semantic, and cross-language recall:
+
+- **Structured retrieval** — primary abstractions preserve what a memory is
+  about while multiple cue anchors provide semantic entry points.
+- **No migration** — keep editing the same OpenClaw Markdown memory.
+- **Reuse local embeddings** — use the Ollama BGE-M3 model you already run.
+- **Reversible adoption** — disable the plugin without changing source memory.
+- **Honest boundaries** — local embeddings and vector storage; GLM extraction
+  uses your existing OpenClaw Gateway route.
+
+In a 30-query personal-corpus evaluation, Memora reached **86.7% Complete@5**
+versus **60.0%** for built-in hybrid search, with median direct-retrieval
+latency of **0.96s** versus **2.42s**. The paired difference was not
+statistically significant at 0.05 (`p=0.0768`), and hybrid remained better for
+some exact facts. Read the full [methodology and limitations](docs/BENCHMARK.md).
 
 ## How it works
 
@@ -35,7 +64,7 @@ MEMORY.md / memory/**/*.md
 ## Requirements
 
 - OpenClaw 2026.7.1 or newer
-- Python 3.10 or newer
+- Python 3.10, 3.11, or 3.12
 - Git
 - A running Ollama server with `bge-m3`
 - A GLM route configured in OpenClaw, defaulting to `zai/glm-5.2`
@@ -53,8 +82,47 @@ ollama serve
 
 ## Install
 
+### Easy install
+
+Install the skill globally with one command:
+
 ```bash
-git clone https://github.com/YOUR_ACCOUNT/memora-openclaw.git
+curl -fsSL \
+  https://raw.githubusercontent.com/jkf87/memora-openclaw/main/install.sh |
+  bash
+```
+
+Then ask OpenClaw to finish setup and build the initial index:
+
+```text
+$memora-openclaw Install Memora, enable it, and build my initial index.
+```
+
+For an unattended full bootstrap, explicitly acknowledge configuration changes,
+the BGE-M3 download, and possible GLM usage:
+
+```bash
+curl -fsSL \
+  https://raw.githubusercontent.com/jkf87/memora-openclaw/main/install.sh |
+  bash -s -- --full --yes
+```
+
+### OpenClaw CLI
+
+```bash
+openclaw skills install \
+  git:https://github.com/jkf87/memora-openclaw.git \
+  --global
+```
+
+The skill checks prerequisites, prepares Ollama BGE-M3, installs the plugin,
+backs up and patches OpenClaw configuration, builds the index, and verifies the
+live `memora_recall` tool.
+
+### Manual installation
+
+```bash
+git clone https://github.com/jkf87/memora-openclaw.git
 cd memora-openclaw
 ./scripts/install.sh
 ```
@@ -92,6 +160,9 @@ openclaw config patch --file ./config/openclaw.patch.json5
 The profile uses `active-memory` as a bounded GLM policy controller and
 `memora_recall` for semantic retrieval through Ollama BGE-M3.
 
+If `active-memory` is not installed, the setup script applies a minimal profile
+that exposes `memora_recall` without adding a policy controller.
+
 ## Verify
 
 ```bash
@@ -124,6 +195,22 @@ This repository contains no memory index, transcripts, user-specific
 benchmarks, credentials, or OpenClaw configuration. `.gitignore` excludes the
 local virtual environment, Memora checkout, generated indices, caches, and
 private evaluation artifacts.
+
+The initial sync sends source memory to the GLM route already configured in
+OpenClaw so Memora can extract abstractions and cue anchors. Do not describe the
+system as fully local unless that GLM route is also local.
+
+## Project status
+
+This project is an independent OpenClaw integration built on the
+[Microsoft Memora](https://github.com/microsoft/Memora) research implementation.
+The pinned upstream revision is fetched during installation and retains its own
+MIT license.
+
+- [Benchmark methodology](docs/BENCHMARK.md)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
 
 ## Rollback
 

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Memora for OpenClaw"
+  short_description: "Install and operate Memora memory retrieval"
+  default_prompt: "Use $memora-openclaw to install, index, or diagnose Memora memory retrieval in OpenClaw."
+

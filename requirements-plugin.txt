@@ -1,5 +1,12 @@
-# Runtime additions on top of Microsoft Memora's requirements.
+# Minimal runtime needed by the OpenClaw adapter and the Memora paths it uses.
+# This intentionally omits Memora's training, evaluation, server, and local-LLM
+# dependencies (for example torch, transformers, bitsandbytes, and FastAPI).
+azure-identity
+chromadb
+markdownify
 omegaconf>=2.3,<3
-
-# Development and verification.
-pytest>=8,<10
+openai
+pydantic
+rank-bm25
+requests
+tiktoken

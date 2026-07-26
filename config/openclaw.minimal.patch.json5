@@ -1,0 +1,21 @@
+{
+  tools: {
+    alsoAllow: ["memora_recall"],
+  },
+  plugins: {
+    entries: {
+      "memora-openclaw": {
+        enabled: true,
+        config: {
+          model: "zai/glm-5.2",
+          embeddingModel: "bge-m3",
+          ollamaBaseUrl: "http://127.0.0.1:11434",
+          ollamaTimeoutSeconds: 120,
+          topK: 8,
+          timeoutMs: 120000,
+        },
+      },
+    },
+  },
+}
+

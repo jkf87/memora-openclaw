@@ -1,7 +1,26 @@
 {
   "name": "memora-openclaw",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Memora retrieval for OpenClaw with GLM and BGE-M3",
+  "homepage": "https://github.com/jkf87/memora-openclaw#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jkf87/memora-openclaw.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jkf87/memora-openclaw/issues"
+  },
+  "keywords": [
+    "openclaw",
+    "openclaw-plugin",
+    "ai-agent-memory",
+    "long-term-memory",
+    "memora",
+    "ollama",
+    "bge-m3",
+    "chromadb",
+    "semantic-search"
+  ],
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -9,11 +28,16 @@
     "adapter.py",
     "memora_runtime.py",
     "index.js",
+    "install.sh",
+    "SKILL.md",
+    "agents/",
+    "docs/",
     "openclaw.plugin.json",
     "config/",
     "scripts/",
     "requirements-plugin.txt",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "peerDependencies": {
