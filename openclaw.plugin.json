@@ -1,0 +1,69 @@
+{
+  "id": "memora-openclaw",
+  "name": "Memora for OpenClaw",
+  "description": "Retrieves OpenClaw Markdown memory through Memora cue indices using GLM and BGE-M3.",
+  "version": "0.1.0",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "pythonPath": {
+        "type": "string",
+        "description": "Python executable created by scripts/install.sh."
+      },
+      "memoraRoot": {
+        "type": "string",
+        "description": "Path to the pinned Microsoft Memora checkout."
+      },
+      "workspace": {
+        "type": "string"
+      },
+      "dataDir": {
+        "type": "string"
+      },
+      "model": {
+        "type": "string",
+        "description": "GLM model route available through the OpenClaw Gateway."
+      },
+      "openclawCommand": {
+        "type": "string"
+      },
+      "embeddingModel": {
+        "type": "string"
+      },
+      "embeddingDevice": {
+        "type": "string"
+      },
+      "embeddingMaxLength": {
+        "type": "integer",
+        "minimum": 128,
+        "maximum": 8192
+      },
+      "topK": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 20
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 600000
+      }
+    }
+  },
+  "contracts": {
+    "tools": [
+      "memora_recall"
+    ]
+  },
+  "toolMetadata": {
+    "memora_recall": {
+      "optional": true,
+      "replaySafe": true
+    }
+  }
+}
+

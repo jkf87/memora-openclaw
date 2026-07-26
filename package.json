@@ -1,0 +1,27 @@
+{
+  "name": "memora-openclaw",
+  "version": "0.1.0",
+  "description": "Memora retrieval for OpenClaw with GLM and BGE-M3",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "files": [
+    "adapter.py",
+    "memora_runtime.py",
+    "index.js",
+    "openclaw.plugin.json",
+    "config/",
+    "scripts/",
+    "requirements-plugin.txt",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "openclaw": ">=2026.7.1"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  }
+}
