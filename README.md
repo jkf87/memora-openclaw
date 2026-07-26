@@ -6,7 +6,7 @@ Memora primary abstractions and cue indices, then exposes them through the
 optional `memora_recall` tool.
 
 - LLM: a GLM model already authenticated in the OpenClaw Gateway
-- Embeddings: local `BAAI/bge-m3` through FlagEmbedding
+- Embeddings: an existing Ollama `bge-m3` model through `/api/embed`
 - Vector store: local ChromaDB
 - Credentials: no API key is copied into this plugin
 - Source of truth: existing OpenClaw Markdown memory
@@ -23,7 +23,7 @@ MEMORY.md / memory/**/*.md
   primary memories + cue indices
               |
               v
-      ChromaDB + BGE-M3
+   ChromaDB + Ollama BGE-M3
               |
               v
         memora_recall
@@ -37,11 +37,19 @@ MEMORY.md / memory/**/*.md
 - OpenClaw 2026.7.1 or newer
 - Python 3.10 or newer
 - Git
+- A running Ollama server with `bge-m3`
 - A GLM route configured in OpenClaw, defaulting to `zai/glm-5.2`
-- Enough disk space for Memora dependencies and the BGE-M3 model
 
 The initial synchronization calls GLM to extract memories and may incur model
-usage charges. BGE-M3 runs locally.
+usage charges. Embeddings reuse the BGE-M3 model already managed by Ollama, so
+the plugin does not download a second copy.
+
+Prepare Ollama first:
+
+```bash
+ollama pull bge-m3
+ollama serve
+```
 
 ## Install
 
@@ -52,8 +60,8 @@ cd memora-openclaw
 ```
 
 The installer creates an isolated `.venv`, checks out a pinned Microsoft
-Memora revision under `vendor/`, installs BGE-M3 support, and links the OpenClaw
-plugin.
+Memora revision under `vendor/`, installs the Python dependencies, and links
+the OpenClaw plugin.
 
 ## Build the index
 
@@ -82,13 +90,14 @@ openclaw config patch --file ./config/openclaw.patch.json5
 ```
 
 The profile uses `active-memory` as a bounded GLM policy controller and
-`memora_recall` for BGE-M3 semantic retrieval.
+`memora_recall` for semantic retrieval through Ollama BGE-M3.
 
 ## Verify
 
 ```bash
 openclaw plugins doctor
 openclaw gateway health
+./.venv/bin/python ./adapter.py doctor
 ./.venv/bin/python ./adapter.py status
 ./.venv/bin/python ./adapter.py query \
   "What did we decide about the memory system?" \
@@ -100,14 +109,14 @@ openclaw gateway health
 The defaults are portable and normally require no absolute paths:
 
 - `model`: `zai/glm-5.2`
-- `embeddingModel`: `BAAI/bge-m3`
-- `embeddingDevice`: `cpu`
-- `embeddingMaxLength`: `1024`
+- `embeddingModel`: `bge-m3`
+- `ollamaBaseUrl`: `http://127.0.0.1:11434`
+- `ollamaTimeoutSeconds`: `120`
 - `workspace`: `~/.openclaw/workspace`
 - `dataDir`: `~/.openclaw/memora-openclaw`
 
-CUDA users may set `embeddingDevice` to `cuda:0`. CPU is the conservative
-default.
+Ollama owns CPU, Metal, or CUDA execution. The plugin only calls its HTTP API.
+A remote Ollama server can be used by changing `ollamaBaseUrl`.
 
 ## Privacy
 

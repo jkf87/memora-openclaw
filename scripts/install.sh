@@ -38,8 +38,11 @@ openclaw plugins install -l "${PLUGIN_DIR}"
 
 echo
 echo "Installed memora-openclaw."
+echo "Ensure Ollama is running with the embedding model:"
+echo "  ollama pull bge-m3"
+echo "  ollama serve"
 echo "Next:"
+echo "  ${VENV_DIR}/bin/python ${PLUGIN_DIR}/adapter.py doctor"
 echo "  ${VENV_DIR}/bin/python ${PLUGIN_DIR}/adapter.py sync"
 echo "  openclaw config patch --file ${PLUGIN_DIR}/config/openclaw.patch.json5 --dry-run"
 echo "  openclaw config patch --file ${PLUGIN_DIR}/config/openclaw.patch.json5"
-

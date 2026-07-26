@@ -61,12 +61,10 @@ def build_config(args: argparse.Namespace, persist_path: Path):
             },
             "openai": {"api_type": "openai"},
             "embedding": {
-                "provider": "bge_m3",
+                "provider": "ollama",
                 "model": args.embedding_model,
-                "device": args.embedding_device,
-                "use_fp16": args.embedding_device.startswith("cuda"),
-                "batch_size": 4,
-                "max_length": args.embedding_max_length,
+                "base_url": args.ollama_base_url,
+                "timeout_seconds": args.ollama_timeout_seconds,
             },
             "memory": {
                 "backend": "local",
@@ -318,6 +316,22 @@ def status(args: argparse.Namespace) -> dict:
     }
 
 
+def doctor(args: argparse.Namespace) -> dict:
+    from memora_runtime import OllamaEmbeddingModel
+
+    cfg = build_config(args, Path(args.data_dir).expanduser() / "doctor-index")
+    embeddings = OllamaEmbeddingModel(cfg).generate_embeddings(
+        ["memora-openclaw embedding health check"]
+    )
+    return {
+        "status": "ok",
+        "embeddingProvider": "ollama",
+        "embeddingModel": args.embedding_model,
+        "ollamaBaseUrl": args.ollama_base_url,
+        "dimensions": len(embeddings[0]),
+    }
+
+
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--workspace", default=str(DEFAULT_WORKSPACE))
@@ -325,9 +339,12 @@ def parser() -> argparse.ArgumentParser:
     common.add_argument("--memora-root", default=str(DEFAULT_MEMORA_ROOT))
     common.add_argument("--model", default="zai/glm-5.2")
     common.add_argument("--openclaw-command", default="openclaw")
-    common.add_argument("--embedding-model", default="BAAI/bge-m3")
-    common.add_argument("--embedding-device", default="cpu")
-    common.add_argument("--embedding-max-length", type=int, default=1024)
+    common.add_argument("--embedding-model", default="bge-m3")
+    common.add_argument(
+        "--ollama-base-url",
+        default="http://127.0.0.1:11434",
+    )
+    common.add_argument("--ollama-timeout-seconds", type=int, default=120)
 
     root = argparse.ArgumentParser(description=__doc__)
     commands = root.add_subparsers(dest="command", required=True)
@@ -342,6 +359,7 @@ def parser() -> argparse.ArgumentParser:
         default="semantic",
     )
     commands.add_parser("status", parents=[common])
+    commands.add_parser("doctor", parents=[common])
     return root
 
 
@@ -352,6 +370,8 @@ def main() -> int:
             result = sync(args)
         elif args.command == "query":
             result = query(args)
+        elif args.command == "doctor":
+            result = doctor(args)
         else:
             result = status(args)
         print(json.dumps(result, ensure_ascii=False))
@@ -372,4 +392,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

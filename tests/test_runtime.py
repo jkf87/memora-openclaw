@@ -1,13 +1,11 @@
 import json
-import sys
 import types
 from unittest.mock import patch
 
-import numpy
 from omegaconf import OmegaConf
 from pydantic import BaseModel
 
-from memora_runtime import BGEM3EmbeddingModel, OpenClawChatCompletionModel
+from memora_runtime import OllamaEmbeddingModel, OpenClawChatCompletionModel
 
 
 def config():
@@ -16,11 +14,9 @@ def config():
             "llm": {"model": "zai/glm-5.2", "thinking": "off"},
             "openclaw": {"command": "openclaw", "provider": "zai", "timeout": 5},
             "embedding": {
-                "model": "BAAI/bge-m3",
-                "device": "cpu",
-                "use_fp16": False,
-                "batch_size": 2,
-                "max_length": 1024,
+                "model": "bge-m3",
+                "base_url": "http://127.0.0.1:11434",
+                "timeout_seconds": 120,
             },
         }
     )
@@ -59,33 +55,33 @@ def test_glm_validates_structured_output():
     assert result.value == "ok"
 
 
-def test_bge_m3_returns_dense_vectors(monkeypatch):
-    class FakeModel:
-        def __init__(self, model_name, **options):
-            assert model_name == "BAAI/bge-m3"
-            assert options == {"use_fp16": False, "devices": "cpu"}
+def test_ollama_bge_m3_returns_dense_vectors():
+    class FakeResponse:
+        def __enter__(self):
+            return self
 
-        def encode(self, values, **options):
-            assert values == ["한국어", "English"]
-            assert options["return_sparse"] is False
-            assert options["return_colbert_vecs"] is False
-            return {
-                "dense_vecs": numpy.array(
-                    [[1.0, 0.0], [0.0, 1.0]],
-                    dtype=numpy.float32,
-                )
-            }
+        def __exit__(self, *args):
+            return None
 
-    monkeypatch.setitem(
-        sys.modules,
-        "FlagEmbedding",
-        types.SimpleNamespace(BGEM3FlagModel=FakeModel),
-    )
-    BGEM3EmbeddingModel._models.clear()
+        def read(self):
+            return json.dumps(
+                {
+                    "model": "bge-m3",
+                    "embeddings": [[1.0, 0.0], [0.0, 1.0]],
+                }
+            ).encode("utf-8")
 
-    vectors = BGEM3EmbeddingModel(config()).generate_embeddings(
-        ["한국어", "English"]
-    )
+    with patch("memora_runtime.urlopen", return_value=FakeResponse()) as urlopen:
+        vectors = OllamaEmbeddingModel(config()).generate_embeddings(
+            ["한국어", "English"]
+        )
 
     assert vectors == [[1.0, 0.0], [0.0, 1.0]]
-
+    request = urlopen.call_args.args[0]
+    payload = json.loads(request.data)
+    assert request.full_url == "http://127.0.0.1:11434/api/embed"
+    assert payload == {
+        "model": "bge-m3",
+        "input": ["한국어", "English"],
+        "truncate": True,
+    }

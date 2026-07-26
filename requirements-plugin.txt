@@ -1,7 +1,5 @@
 # Runtime additions on top of Microsoft Memora's requirements.
-FlagEmbedding>=1.3,<2
 omegaconf>=2.3,<3
 
 # Development and verification.
 pytest>=8,<10
-

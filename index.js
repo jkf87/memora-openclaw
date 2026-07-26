@@ -32,11 +32,11 @@ function runAdapter(args, config, signal) {
     "--openclaw-command",
     config.openclawCommand || "openclaw",
     "--embedding-model",
-    config.embeddingModel || "BAAI/bge-m3",
-    "--embedding-device",
-    config.embeddingDevice || "cpu",
-    "--embedding-max-length",
-    String(config.embeddingMaxLength || 1024),
+    config.embeddingModel || "bge-m3",
+    "--ollama-base-url",
+    config.ollamaBaseUrl || "http://127.0.0.1:11434",
+    "--ollama-timeout-seconds",
+    String(config.ollamaTimeoutSeconds || 120),
   ];
 
   return new Promise((resolve, reject) => {
@@ -152,4 +152,3 @@ export default definePluginEntry({
     );
   },
 });
-

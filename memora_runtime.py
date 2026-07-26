@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 import re
 import subprocess
-import threading
 from typing import Any, Dict, Optional, Sequence, Union
+from urllib.error import HTTPError, URLError
+from urllib.parse import urljoin
+from urllib.request import Request, urlopen
 
 
 _JSON_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
@@ -168,51 +170,68 @@ class OpenClawChatCompletionModel:
         return text
 
 
-class BGEM3EmbeddingModel:
-    """Memora-compatible dense embedding adapter backed by BAAI/bge-m3."""
-
-    _models: dict[tuple[str, str, bool], Any] = {}
-    _lock = threading.Lock()
+class OllamaEmbeddingModel:
+    """Memora-compatible adapter for an existing Ollama embedding model."""
 
     def __init__(self, cfg, client=None):
         del client
         self.cfg = cfg
         self.client = None
-        self._model = None
 
     def get_client(self):
         return None
 
-    def _load(self):
-        embedding_cfg = self.cfg.get("embedding", {})
-        model_name = str(embedding_cfg.get("model", "BAAI/bge-m3"))
-        device = str(embedding_cfg.get("device", "cpu"))
-        use_fp16 = bool(embedding_cfg.get("use_fp16", False))
-        key = (model_name, device, use_fp16)
-        if key not in self._models:
-            with self._lock:
-                if key not in self._models:
-                    from FlagEmbedding import BGEM3FlagModel
-
-                    options: dict[str, Any] = {"use_fp16": use_fp16}
-                    if device and device != "auto":
-                        options["devices"] = device
-                    self._models[key] = BGEM3FlagModel(model_name, **options)
-        self._model = self._models[key]
-
     def generate_embeddings(self, input: list[str]) -> list[list[float]]:
-        if self._model is None:
-            self._load()
         embedding_cfg = self.cfg.get("embedding", {})
-        output = self._model.encode(
-            input,
-            batch_size=int(embedding_cfg.get("batch_size", 4)),
-            max_length=int(embedding_cfg.get("max_length", 1024)),
-            return_dense=True,
-            return_sparse=False,
-            return_colbert_vecs=False,
+        base_url = str(
+            embedding_cfg.get("base_url", "http://127.0.0.1:11434")
+        ).rstrip("/") + "/"
+        endpoint = urljoin(base_url, "api/embed")
+        payload = json.dumps(
+            {
+                "model": str(embedding_cfg.get("model", "bge-m3")),
+                "input": input,
+                "truncate": True,
+            }
+        ).encode("utf-8")
+        request = Request(
+            endpoint,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
         )
-        return [vector.tolist() for vector in output["dense_vecs"]]
+        try:
+            with urlopen(
+                request,
+                timeout=int(embedding_cfg.get("timeout_seconds", 120)),
+            ) as response:
+                output = json.loads(response.read().decode("utf-8"))
+        except HTTPError as error:
+            details = error.read().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"Ollama embedding request failed with HTTP "
+                f"{error.code}: {details[:500]}"
+            ) from error
+        except URLError as error:
+            raise RuntimeError(
+                f"Cannot reach Ollama at {base_url}. Start Ollama or configure "
+                "embedding.base_url."
+            ) from error
+
+        embeddings = output.get("embeddings")
+        if not isinstance(embeddings, list) or len(embeddings) != len(input):
+            raise RuntimeError(
+                "Ollama returned an invalid embedding batch: expected "
+                f"{len(input)} vectors"
+            )
+        if any(
+            not isinstance(vector, list)
+            or not vector
+            or any(not isinstance(value, (int, float)) for value in vector)
+            for vector in embeddings
+        ):
+            raise RuntimeError("Ollama returned invalid embedding vectors")
+        return embeddings
 
 
 def install_memora_runtime() -> None:
@@ -221,5 +240,4 @@ def install_memora_runtime() -> None:
     import memora.utils.llm as llm_module
 
     llm_module.ChatCompletionModel = OpenClawChatCompletionModel
-    embedding_module.BaseEmbeddingModel = BGEM3EmbeddingModel
-
+    embedding_module.BaseEmbeddingModel = OllamaEmbeddingModel

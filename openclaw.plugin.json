@@ -34,13 +34,13 @@
       "embeddingModel": {
         "type": "string"
       },
-      "embeddingDevice": {
+      "ollamaBaseUrl": {
         "type": "string"
       },
-      "embeddingMaxLength": {
+      "ollamaTimeoutSeconds": {
         "type": "integer",
-        "minimum": 128,
-        "maximum": 8192
+        "minimum": 1,
+        "maximum": 600
       },
       "topK": {
         "type": "integer",
@@ -66,4 +66,3 @@
     }
   }
 }
-

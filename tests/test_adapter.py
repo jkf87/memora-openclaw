@@ -8,9 +8,9 @@ def arguments() -> Namespace:
     return Namespace(
         model="zai/glm-5.2",
         openclaw_command="openclaw",
-        embedding_model="BAAI/bge-m3",
-        embedding_device="cpu",
-        embedding_max_length=1024,
+        embedding_model="bge-m3",
+        ollama_base_url="http://127.0.0.1:11434",
+        ollama_timeout_seconds=120,
     )
 
 
@@ -48,7 +48,6 @@ def test_config_uses_glm_and_bge_m3(tmp_path):
 
     assert cfg.llm.model == "zai/glm-5.2"
     assert cfg.llm.provider == "openclaw_gateway"
-    assert cfg.embedding.provider == "bge_m3"
-    assert cfg.embedding.model == "BAAI/bge-m3"
-    assert cfg.embedding.device == "cpu"
-
+    assert cfg.embedding.provider == "ollama"
+    assert cfg.embedding.model == "bge-m3"
+    assert cfg.embedding.base_url == "http://127.0.0.1:11434"
